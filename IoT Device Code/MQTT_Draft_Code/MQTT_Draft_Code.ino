@@ -7,7 +7,6 @@ const char* mqtt_server = "INSERT_YOUR_MQTT_BROKER_IP";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
-int i = 0;
 
 
 void setup() {
@@ -23,9 +22,8 @@ void loop() {
 
   client.loop();
 
-  //String payload = "{\"temperature\":25, \"humidity\":60}";
-  client.publish("esp32/data", String(i).c_str());
-  i++;
+  String payload = "{\"temperature\":25, \"humidity\":60}";
+  client.publish("esp32/data", payload.c_str());
 
   delay(5000);
 }
