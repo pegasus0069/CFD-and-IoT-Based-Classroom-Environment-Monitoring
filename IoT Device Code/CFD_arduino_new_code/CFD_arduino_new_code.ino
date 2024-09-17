@@ -40,13 +40,13 @@ void setup() {
         Serial.println("bme begin failed");
         delay(2000);
     }
-  Serial3.begin(9600);
+  Serial3.begin(115200);
 }
 
 void loop() {
   sht35.read_meas_data_single_shot(HIGH_REP_WITH_STRCH, &temp, &hum);
   pressure = bme.getPressure();
-  alt = bme.calAltitude(SEA_LEVEL_PRESSURE, pressure);
+  alt = bme.calAltitude(SEA_LEVEL_PRESSURE, pressure)/100;
 
   //PMS5003 Readings
   //pms.wakeUp();
