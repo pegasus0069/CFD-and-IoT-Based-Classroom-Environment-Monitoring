@@ -1,17 +1,23 @@
 #include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <WebSerialLite.h>
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "Fab@IUB";
-const char* password = "@makers#";
+const char* ssid = "PegaSus007-ArcherC6";
+const char* password = "uxoricide1995";
 
 // MQTT broker settings
-const char* mqtt_server = "INSERT_YOUR_MQTT_BROKER_IP"; 
+const char* mqtt_server = "103.237.39.27"; 
+const char* mqtt_topic = "esp8266/cfd1";  // Topic to publish data to
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+AsyncWebServer server(5050);
 
 // Sensor data (dummy data)
+int id = 1;
 float temp = 0;
 float hum = 0;
 float Pressure = 0;
@@ -21,10 +27,25 @@ float PM25 = 0;
 float PM10 = 0;
 float CO2 = 0;
 
+String msg = "";  // Store incoming serial data
+unsigned long lastSerialReadTime = 0;  // Track the time for serial reading
+const unsigned long serialTimeout = 1500;  // 1500 ms timeout for receiving complete data
+
+void recvMsg(uint8_t *data, size_t len) {
+  String d = "";
+  for (int i = 0; i < len; i++) {
+    d += char(data[i]);
+  }
+}
+
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   setup_wifi();
-  client.setServer(mqtt_server, 1883); // Set the MQTT broker and port
+  WebSerial.begin(&server);
+  WebSerial.onMessage(recvMsg);
+  server.begin();
+
+  client.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
 }
 
 void loop() {
@@ -33,105 +54,94 @@ void loop() {
   }
   client.loop();
 
-  if(Serial.available()){
-    String msg = "";
-    while(Serial.available()){
-      msg += char(Serial.read());
-      delay(50);
-    }
-    parseDataString(msg);
-    sendData(temp, hum, Pressure, alt, PM1, PM25, PM10, CO2);
-  }
-
-// delay(5000); // Publish every 5 seconds
+  // Check for serial input
+  readSerialData();
+  
+  delay(5000);  // Delay for testing, adjust as needed
 }
 
 void setup_wifi() {
   delay(500);
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  
   WiFi.begin(ssid, password);
-  
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
   }
-  
-  Serial.println("");
-  Serial.println("WiFi connected");
 }
 
 void reconnect() {
   while (!client.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    if (client.connect("ESP8266Client")) {  // Client ID
-      Serial.println("connected");
+    if (client.connect("ESP8266Client")) {
+      // Successfully connected
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.print(" - ");
-      switch (client.state()) {
-        case -4: Serial.println("MQTT connect failed: Server unavailable"); break;
-        case -3: Serial.println("MQTT connect failed: Connection refused"); break;
-        case -2: Serial.println("MQTT connect failed: Network error"); break;
-        case -1: Serial.println("MQTT connect failed: Protocol error"); break;
-        default: Serial.println("MQTT connect failed: Unknown error"); break;
-      }
-      delay(5000);
+      delay(5000);  // Wait 5 seconds before retrying
     }
   }
 }
 
+// Parse incoming serial data
 void parseDataString(String inputString) {
   char inputChars[inputString.length() + 1];
   inputString.toCharArray(inputChars, inputString.length() + 1);
-  char *token;
+  char* token;
 
   token = strtok(inputChars, ";");
-  float temperature = atof(token);
+  if (token != NULL) temp = atof(token);
 
   token = strtok(NULL, ";");
-  float humidity = atof(token);
+  if (token != NULL) hum = atof(token);
 
   token = strtok(NULL, ";");
-  float pressure = atof(token);
+  if (token != NULL) Pressure = atof(token);
 
   token = strtok(NULL, ";");
-  float altitude = atof(token);
+  if (token != NULL) alt = atof(token);
 
   token = strtok(NULL, ";");
-  float pm1 = atof(token);
+  if (token != NULL) PM1 = atof(token);
 
   token = strtok(NULL, ";");
-  float pm25 = atof(token);
+  if (token != NULL) PM25 = atof(token);
 
   token = strtok(NULL, ";");
-  float pm10 = atof(token);
+  if (token != NULL) PM10 = atof(token);
 
   token = strtok(NULL, ";");
-  float co2 = atof(token);
-
-  temp = temperature; 
-  hum = humidity;
-  Pressure = pressure;
-  alt = altitude;
-  PM1 = pm1;
-  PM25 = pm25;
-  PM10 = pm10;
-  CO2 = co2;
+  if (token != NULL) CO2 = atof(token);
 }
 
-void sendData(float tem, float hum, float pressure, float alt, float pm1, float pm25, float pm10, float co2) {
+// Publish data to MQTT broker
+void sendData(int id, float tem, float hum, float pressure, float alt, float pm1, float pm25, float pm10, float co2) {
   // Create a JSON-like string payload
-  String payload = "{\"air_temperature\":" + String(tem) + ",\"humidity\":" + String(hum) +
-                   ",\"pressure\":" + String(pressure) + ",\"pm1\":" + String(pm1) + ",\"pm25\":" + String(pm25) + 
+  String payload = "{\"id\":" + String(id) + ",\"air_temperature\":" + String(tem) + ",\"humidity\":" + String(hum) +
+                   ",\"pressure\":" + String(pressure) + ",\"pm1\":" + String(pm1) + ",\"pm2_5\":" + String(pm25) + 
                    ",\"pm10\":" + String(pm10) + ",\"co2\":" + String(co2) + "}";
-  
+
   // Publish the payload to the topic
-  client.publish("esp8266/sensorData", payload.c_str());
-  
-  Serial.print("Published data: ");
-  Serial.println(payload);
+  if (client.publish(mqtt_topic, payload.c_str())) {
+    // Publish successful
+  }
+}
+
+// Function to read serial data and handle timeout
+void readSerialData() {
+  // Check if there's serial data available
+  if (Serial.available()) {
+    lastSerialReadTime = millis();  // Reset the timeout timer
+
+    while (Serial.available()) {
+      char incomingChar = Serial.read();  // Read each character
+      if (incomingChar == '\n') {  // Newline indicates end of message
+        parseDataString(msg);  // Parse the complete message
+        sendData(id, temp, hum, Pressure, alt, PM1, PM25, PM10, CO2);  // Send parsed data via MQTT
+        msg = "";  // Clear the message buffer
+      } else {
+        msg += incomingChar;  // Append the incoming character to the message
+      }
+    }
+  }
+
+  // Check if no data has been received for the timeout period
+  if (millis() - lastSerialReadTime > serialTimeout && msg.length() > 0) {
+    msg = "";  // Reset the buffer if incomplete data has been sitting for too long
+  }
 }

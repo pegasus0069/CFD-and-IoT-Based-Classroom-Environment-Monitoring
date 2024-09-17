@@ -1,12 +1,24 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-const char* ssid = "INSERT_YOUR_SSID";
-const char* password = "INSERT_YOUR_PASSWORD";
-const char* mqtt_server = "INSERT_YOUR_MQTT_BROKER_IP"; 
+// Sensor data (dummy data)
+float temp = 0;
+float hum = 0;
+float Pressure = 0;
+float alt = 0;
+float PM1 = 0;
+float PM25 = 0;
+float PM10 = 0;
+float CO2 = 0;
+int id = 99;
+
+const char* ssid = "Mahir 2.4GHz";
+const char* password = "01741238814";
+const char* mqtt_server = "103.237.39.27"; 
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+int i = 0;
 
 
 void setup() {
@@ -22,10 +34,12 @@ void loop() {
 
   client.loop();
 
-  String payload = "{\"temperature\":25, \"humidity\":60}";
-  client.publish("esp32/data", payload.c_str());
+  //String payload = "{\"temperature\":25, \"humidity\":60}";
+  //client.publish("sensor/data", String(i).c_str());
+  sendData(id, temp, hum, Pressure, alt, PM1, PM25, PM10, CO2);
+  i++;
 
-  delay(5000);
+  delay(2000);
 }
 
 void setup_wifi() {
@@ -63,4 +77,16 @@ void reconnect() {
       delay(5000);
     }
   }
+}
+void sendData(int id, float tem, float hum, float pressure, float alt, float pm1, float pm25, float pm10, float co2) {
+  // Create a JSON-like string payload
+  String payload = "{\"id\":" + String(id) + ",\"air_temperature\":" + String(tem) + ",\"humidity\":" + String(hum) +
+                   ",\"pressure\":" + String(pressure) + ",\"pm1\":" + String(pm1) + ",\"pm2_5\":" + String(pm25) + 
+                   ",\"pm10\":" + String(pm10) + ",\"co2\":" + String(co2) + "}";
+  
+  // Publish the payload to the topic
+  client.publish("esp8266/sensorData", payload.c_str());
+  
+  Serial.print("Published data: ");
+  Serial.println(payload);
 }

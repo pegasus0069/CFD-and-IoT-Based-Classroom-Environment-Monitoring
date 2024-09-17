@@ -30,7 +30,7 @@ void setup() {
   //MH-Z19B
   Serial1.begin(9600);  //MH-Z19B Serial
   myMHZ19.begin(Serial1);                                // *Serial(Stream) refence must be passed to library begin().
-  myMHZ19.autoCalibration(true);                              // Turn auto calibration ON (OFF autoCalibration(false))
+  myMHZ19.autoCalibration(false);                              // Turn auto calibration ON (OFF autoCalibration(false))
   //PMS5003
   Serial2.begin(9600);  //PMS5003 Serial
   pms.passiveMode();    // Switch to passive mode
@@ -40,7 +40,7 @@ void setup() {
         Serial.println("bme begin failed");
         delay(2000);
     }
-  Serial3.begin(115200);
+  Serial3.begin(9600);
 }
 
 void loop() {
