@@ -5,19 +5,19 @@
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "PegaSus007-ArcherC6";
-const char* password = "uxoricide1995";
+const char* ssid = "CFDIUB";
+const char* password = "#cfd@iub#";
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27"; 
-const char* mqtt_topic = "esp8266/cfd1";  // Topic to publish data to
+const char* mqtt_topic = "esp8266/cfd0";  // Topic to publish data to
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 AsyncWebServer server(5050);
 
 // Sensor data (dummy data)
-int id = 1;
+int id = 0;
 float temp = 0;
 float hum = 0;
 float Pressure = 0;
@@ -39,7 +39,7 @@ void recvMsg(uint8_t *data, size_t len) {
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   setup_wifi();
   WebSerial.begin(&server);
   WebSerial.onMessage(recvMsg);
@@ -52,6 +52,9 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
+  else {
+    Serial.println("UWU");
+    }
   client.loop();
 
   // Check for serial input
@@ -66,6 +69,11 @@ void setup_wifi() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
   }
+  Serial.print("Successfully connected to : ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
 }
 
 void reconnect() {
@@ -119,6 +127,8 @@ void sendData(int id, float tem, float hum, float pressure, float alt, float pm1
   // Publish the payload to the topic
   if (client.publish(mqtt_topic, payload.c_str())) {
     // Publish successful
+    Serial.println("Data Published:");
+    Serial.println(payload);
   }
 }
 
@@ -133,6 +143,8 @@ void readSerialData() {
       if (incomingChar == '\n') {  // Newline indicates end of message
         parseDataString(msg);  // Parse the complete message
         sendData(id, temp, hum, Pressure, alt, PM1, PM25, PM10, CO2);  // Send parsed data via MQTT
+        Serial.println("Device Data:");
+        Serial.println(msg);
         msg = "";  // Clear the message buffer
       } else {
         msg += incomingChar;  // Append the incoming character to the message
