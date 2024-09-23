@@ -105,5 +105,5 @@ void loop() {
 
   Serial3.println(str);
   
-  delay(1000);
+  delay(4500);
 }

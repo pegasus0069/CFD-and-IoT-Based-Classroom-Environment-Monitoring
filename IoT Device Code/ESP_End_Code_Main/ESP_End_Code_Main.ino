@@ -5,16 +5,16 @@
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "PegaSus007-ArcherC6";
-const char* password = "uxoricide1995";
+const char* ssid = "Mahir 2.4GHz";
+const char* password = "01741238814";
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27"; 
-const char* mqtt_topic = "esp8266/cfd1";  // Topic to publish data to
+const char* mqtt_topic = "esp8266/sensorData";  // Topic to publish data to
 
 WiFiClient espClient;
 PubSubClient client(espClient);
-AsyncWebServer server(5050);
+AsyncWebServer server(80);
 
 // Sensor data (dummy data)
 int id = 1;
@@ -42,7 +42,6 @@ void setup() {
   Serial.begin(9600);
   setup_wifi();
   WebSerial.begin(&server);
-  WebSerial.onMessage(recvMsg);
   server.begin();
 
   client.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
@@ -52,12 +51,15 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
+  WebSerial.println("New loop");
   client.loop();
 
   // Check for serial input
+  
   readSerialData();
   
-  delay(5000);  // Delay for testing, adjust as needed
+  
+  //delay(5000);  // Delay for testing, adjust as needed
 }
 
 void setup_wifi() {
@@ -111,14 +113,17 @@ void parseDataString(String inputString) {
 
 // Publish data to MQTT broker
 void sendData(int id, float tem, float hum, float pressure, float alt, float pm1, float pm25, float pm10, float co2) {
+  WebSerial.print("sendData function called");
   // Create a JSON-like string payload
   String payload = "{\"id\":" + String(id) + ",\"air_temperature\":" + String(tem) + ",\"humidity\":" + String(hum) +
                    ",\"pressure\":" + String(pressure) + ",\"pm1\":" + String(pm1) + ",\"pm2_5\":" + String(pm25) + 
                    ",\"pm10\":" + String(pm10) + ",\"co2\":" + String(co2) + "}";
 
   // Publish the payload to the topic
+  WebSerial.println(payload.c_str());
   if (client.publish(mqtt_topic, payload.c_str())) {
     // Publish successful
+    WebSerial.println("Publish successful");
   }
 }
 
@@ -126,6 +131,7 @@ void sendData(int id, float tem, float hum, float pressure, float alt, float pm1
 void readSerialData() {
   // Check if there's serial data available
   if (Serial.available()) {
+    WebSerial.print("Receiving data from Arduino");
     lastSerialReadTime = millis();  // Reset the timeout timer
 
     while (Serial.available()) {
@@ -144,4 +150,17 @@ void readSerialData() {
   if (millis() - lastSerialReadTime > serialTimeout && msg.length() > 0) {
     msg = "";  // Reset the buffer if incomplete data has been sitting for too long
   }
+}
+
+// This function is called when data is received from the browser
+void onWebSerialReceive(uint8_t *data, size_t len) {
+  String receivedText = "";
+  for (int i = 0; i < len; i++) {
+    receivedText += char(data[i]);
+  }
+  Serial.println("Received via WebSerial: " + receivedText);
+  
+  // Echo back the received message to the browser
+  WebSerial.print("Echo: ");
+  WebSerial.println(receivedText);
 }
