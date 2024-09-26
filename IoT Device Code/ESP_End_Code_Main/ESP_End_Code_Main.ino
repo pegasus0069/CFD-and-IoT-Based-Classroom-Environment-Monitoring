@@ -61,7 +61,7 @@ void loop() {
 
         if (timeClient.updated()) {
           syncTimeFromNTP();  // Sync the time
-      }
+        }
     }
     // Keep track of time using millis() when internet is lost
     unsigned long currentMillis = millis();
@@ -72,12 +72,17 @@ void loop() {
     timestamp = getISO8601String(currentTime);
 
     client.loop();
+    
     // Handle OTA updates
     ArduinoOTA.handle();
+    
+    // Reconnect Wi-Fi if disconnected
+    if (WiFi.status() != WL_CONNECTED) {
+        setup_wifi();
+    }
+    
     // Check for serial input
     readSerialData();
-
-    
 }
 
 void setup_wifi() {
@@ -146,7 +151,7 @@ void sendData(int id, float tem, float hum, float pressure, float alt, float pm1
                      ",\"pm2_5\":" + String(pm25) +
                      ",\"pm10\":" + String(pm10) +
                      ",\"co2\":" + String(co2) +
-                     ",\"timestamp\":" + timestamp + "}";
+                     ",\"timestamp\":\"" + timestamp + "\"}";  // Add quotes around the timestamp
 
     // Publish the payload to the topic
     if (client.publish(mqtt_topic, payload.c_str())) {
@@ -183,26 +188,28 @@ void readSerialData() {
         msg = "";  // Reset the buffer if incomplete data has been sitting for too long
     }
 }
+
 void syncTimeFromNTP() {
-  lastNtpSyncTime = timeClient.getEpochTime();  // Get time in seconds from NTP
-  lastMillis = millis();                       // Capture millis for comparison later
-  Serial.println("Synced from NTP: " + getISO8601String(lastNtpSyncTime));
+    lastNtpSyncTime = timeClient.getEpochTime();  // Get time in seconds from NTP
+    lastMillis = millis();                       // Capture millis for comparison later
+    Serial.println("Synced from NTP: " + getISO8601String(lastNtpSyncTime));
 }
 
 // Convert epoch time to ISO 8601 formatted string
 String getISO8601String(unsigned long epochTime) {
-  time_t rawtime = epochTime;                   // Get the epoch time
-  struct tm * timeinfo = gmtime(&rawtime);      // Convert to UTC structure
+    time_t rawtime = epochTime;                   // Get the epoch time
+    struct tm * timeinfo = gmtime(&rawtime);      // Convert to UTC structure
 
-  // Adjust for GMT+6 (you can subtract for negative offsets)
-  timeinfo->tm_hour += 6;
+    // Adjust the time correctly using mktime
+    timeinfo->tm_hour += 6;
+    mktime(timeinfo);  // Adjust the time structure
 
-  // Format the time as "YYYY-MM-DDTHH:MM:SSZ"
-  char buffer[25];
-  strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S", timeinfo);
+    // Format the time as "YYYY-MM-DDTHH:MM:SSZ"
+    char buffer[25];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S", timeinfo);
 
-  // Return as a string
-  return String(buffer);
+    // Return as a string
+    return String(buffer);
 }
 
 void setupOTA() {
