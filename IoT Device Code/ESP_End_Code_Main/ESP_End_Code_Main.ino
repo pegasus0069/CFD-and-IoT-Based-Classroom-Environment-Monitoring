@@ -1,19 +1,10 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <NTPClient.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h> 
-
-// Define NTP Client to get time
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 6 * 3600, 60000); // GMT+6 offset
-
-unsigned long lastNtpSyncTime = 0;   // Store last synced time from NTP
-unsigned long lastMillis = 0;        // Store millis when time was last synced
+#include <ArduinoOTA.h>  // Include the OTA library
 
 // WiFi credentials
-const char* ssid = "Mahir 2.4GHz";
-const char* password = "01741238814";
+const char* ssid = "CFDIUB";
+const char* password = "#cfd@iub#";
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27";
@@ -24,7 +15,6 @@ PubSubClient client(espClient);
 
 // Sensor data (dummy data)
 int id = 0;
-String timestamp = "";
 float temp = 0;
 float hum = 0;
 float Pressure = 0;
@@ -44,9 +34,6 @@ void setup() {
 
     client.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
 
-    timeClient.begin();
-    syncTimeFromNTP();   // Initial sync
-
     // Initialize OTA
     ArduinoOTA.setPassword("espota");
     setupOTA();
@@ -57,30 +44,12 @@ void loop() {
         reconnect();
     } else {
         Serial.println("Connected to MQTT broker.");
-        timeClient.update();  // Always update the NTP client
-
-        // Sync the time from NTP server and store it in epoch format
-        syncTimeFromNTP();
     }
-
-    // Keep track of time using millis() when internet is lost
-    unsigned long currentMillis = millis();
-    unsigned long timeSinceLastSync = (currentMillis - lastMillis) / 1000;
-    unsigned long currentTime = lastNtpSyncTime + timeSinceLastSync;
-
-    // Get ISO 8601 formatted string
-    timestamp = getISO8601String(currentTime);
-
     client.loop();
-    
+
     // Handle OTA updates
     ArduinoOTA.handle();
-    
-    // Reconnect Wi-Fi if disconnected
-    if (WiFi.status() != WL_CONNECTED) {
-        setup_wifi();
-    }
-    
+
     // Check for serial input
     readSerialData();
 }
@@ -96,6 +65,41 @@ void setup_wifi() {
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
     Serial.println();
+}
+
+void setupOTA() {
+    ArduinoOTA.onStart([]() {
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH) {
+            type = "sketch";
+        } else {  // U_SPIFFS
+            type = "filesystem";
+        }
+        Serial.println("Start updating " + type);
+    });
+    ArduinoOTA.onEnd([]() {
+        Serial.println("\nEnd");
+    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+        Serial.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR) {
+            Serial.println("Auth Failed");
+        } else if (error == OTA_BEGIN_ERROR) {
+            Serial.println("Begin Failed");
+        } else if (error == OTA_CONNECT_ERROR) {
+            Serial.println("Connect Failed");
+        } else if (error == OTA_RECEIVE_ERROR) {
+            Serial.println("Receive Failed");
+        } else if (error == OTA_END_ERROR) {
+            Serial.println("End Failed");
+        }
+    });
+
+    ArduinoOTA.begin();
+    Serial.println("OTA ready");
 }
 
 void reconnect() {
@@ -150,8 +154,7 @@ void sendData(int id, float tem, float hum, float pressure, float alt, float pm1
                      ",\"pm1\":" + String(pm1) +
                      ",\"pm2_5\":" + String(pm25) +
                      ",\"pm10\":" + String(pm10) +
-                     ",\"co2\":" + String(co2) +
-                     ",\"timestamp\":\"" + timestamp + "\"}";  // Add quotes around the timestamp
+                     ",\"co2\":" + String(co2) + "}";
 
     // Publish the payload to the topic
     if (client.publish(mqtt_topic, payload.c_str())) {
@@ -187,62 +190,4 @@ void readSerialData() {
         Serial.println("Incomplete data received. Clearing buffer.");
         msg = "";  // Reset the buffer if incomplete data has been sitting for too long
     }
-}
-
-void syncTimeFromNTP() {
-    lastNtpSyncTime = timeClient.getEpochTime();  // Get time in seconds from NTP
-    lastMillis = millis();                       // Capture millis for comparison later
-    Serial.println("Synced from NTP: " + getISO8601String(lastNtpSyncTime));
-}
-
-// Convert epoch time to ISO 8601 formatted string
-String getISO8601String(unsigned long epochTime) {
-    time_t rawtime = epochTime;                   // Get the epoch time
-    struct tm * timeinfo = gmtime(&rawtime);      // Convert to UTC structure
-
-    // Adjust the time correctly using mktime
-    timeinfo->tm_hour += 6;
-    mktime(timeinfo);  // Adjust the time structure
-
-    // Format the time as "YYYY-MM-DDTHH:MM:SSZ"
-    char buffer[25];
-    strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S", timeinfo);
-
-    // Return as a string
-    return String(buffer);
-}
-
-void setupOTA() {
-    ArduinoOTA.onStart([]() {
-        String type;
-        if (ArduinoOTA.getCommand() == U_FLASH) {
-            type = "sketch";
-        } else {  // U_SPIFFS
-            type = "filesystem";
-        }
-        Serial.println("Start updating " + type);
-    });
-    ArduinoOTA.onEnd([]() {
-        Serial.println("\nEnd");
-    });
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    });
-    ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR) {
-            Serial.println("Auth Failed");
-        } else if (error == OTA_BEGIN_ERROR) {
-            Serial.println("Begin Failed");
-        } else if (error == OTA_CONNECT_ERROR) {
-            Serial.println("Connect Failed");
-        } else if (error == OTA_RECEIVE_ERROR) {
-            Serial.println("Receive Failed");
-        } else if (error == OTA_END_ERROR) {
-            Serial.println("End Failed");
-        }
-    });
-
-    ArduinoOTA.begin();
-    Serial.println("OTA ready");
 }
