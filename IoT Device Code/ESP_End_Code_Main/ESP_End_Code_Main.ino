@@ -1,6 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 #include <ArduinoOTA.h>  // Include the OTA library
+
+//Time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000); // UTC offset 0
 
 // WiFi credentials
 const char* ssid = "CFDIUB";
@@ -15,6 +21,7 @@ PubSubClient client(espClient);
 
 // Sensor data (dummy data)
 int id = 0;
+String timestamp = "";
 float temp = 0;
 float hum = 0;
 float Pressure = 0;
@@ -49,6 +56,9 @@ void loop() {
 
     // Handle OTA updates
     ArduinoOTA.handle();
+
+    //Update time
+    timeClient.update();
 
     // Check for serial input
     readSerialData();
@@ -108,13 +118,16 @@ void reconnect() {
             Serial.println("Connected to MQTT broker.");
         } else {
             Serial.print("Failed to connect to MQTT broker. Retrying in 5 seconds...");
-            delay(5000);  // Wait 5 seconds before retrying
+            delay(500);  // Wait 5 seconds before retrying
         }
     }
 }
 
 // Parse incoming serial data
 void parseDataString(String inputString) {
+    // Time
+    timestamp = getFormattedTime();
+
     char inputChars[inputString.length() + 1];
     inputString.toCharArray(inputChars, inputString.length() + 1);
     char* token;
@@ -154,10 +167,12 @@ void sendData(int id, float tem, float hum, float pressure, float alt, float pm1
                      ",\"pm1\":" + String(pm1) +
                      ",\"pm2_5\":" + String(pm25) +
                      ",\"pm10\":" + String(pm10) +
-                     ",\"co2\":" + String(co2) + "}";
+                     ",\"co2\":" + String(co2) +
+                 ",\"timestamp\":\"" + timestamp + "\"}";
 
     // Publish the payload to the topic
     if (client.publish(mqtt_topic, payload.c_str())) {
+        timeClient.update();
         Serial.println("Data Published:");
         Serial.println(payload);
     } else {
@@ -190,4 +205,14 @@ void readSerialData() {
         Serial.println("Incomplete data received. Clearing buffer.");
         msg = "";  // Reset the buffer if incomplete data has been sitting for too long
     }
+}
+String getFormattedTime() {
+    time_t rawTime = timeClient.getEpochTime();
+    struct tm * timeinfo;
+    timeinfo = localtime(&rawTime);
+    
+    char buffer[20]; // 2024-09-24 09:52:31
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    
+    return String(buffer);
 }
