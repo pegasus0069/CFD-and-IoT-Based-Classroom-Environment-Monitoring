@@ -57,12 +57,12 @@ void loop() {
         reconnect();
     } else {
         Serial.println("Connected to MQTT broker.");
-        timeClient.update();  // Sync from NTP when available
+        timeClient.update();  // Always update the NTP client
 
-        if (timeClient.updated()) {
-          syncTimeFromNTP();  // Sync the time
-        }
+        // Sync the time from NTP server and store it in epoch format
+        syncTimeFromNTP();
     }
+
     // Keep track of time using millis() when internet is lost
     unsigned long currentMillis = millis();
     unsigned long timeSinceLastSync = (currentMillis - lastMillis) / 1000;
