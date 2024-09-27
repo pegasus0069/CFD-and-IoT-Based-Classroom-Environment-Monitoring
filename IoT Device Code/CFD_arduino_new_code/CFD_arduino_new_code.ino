@@ -116,8 +116,8 @@ void sendData() {
                      ",\"pm1\":" + String(pm1Avg) +
                      ",\"pm2_5\":" + String(pm25Avg) +
                      ",\"pm10\":" + String(pm10Avg) +
-                     ",\"co2\":" + String(CO2Avg);
-
+                     ",\"co2\":" + String(CO2Avg) + "\"}";
+    
   Serial3.println(str);
   
   Serial.println("------xxxxxxxxxxxxxxxxxxxxxxxx--------");
