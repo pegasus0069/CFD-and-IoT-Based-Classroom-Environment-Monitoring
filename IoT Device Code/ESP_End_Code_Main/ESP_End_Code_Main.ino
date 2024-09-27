@@ -59,5 +59,5 @@ void updateTime() {
     // Format timestamp and assign to String
     char buffer[20]; // Buffer to format timestamp
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
-    timestamp = String(buffer); // Store formatted timestamp as String
+    timestamp = String(buffer);
 }
