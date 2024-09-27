@@ -14,12 +14,12 @@ WiFiClient espClient;
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27";
-const char* mqtt_topic = "esp8266/sensorData";  // Topic to publish data to
+const char* mqtt_topic = "esp8266/sensorData";  
 PubSubClient mqttClient(espClient);
 
 // Data
 char timestamp[20]; // Buffer to store the formatted timestamp
-char incomingData[100]; // Buffer to store incoming serial data (adjust size as needed)
+String incomingData; 
 
 void setup() {
     Serial.begin(115200);
@@ -41,12 +41,12 @@ void loop() {
 
     // Read Serial
     if (Serial.available() > 0) {
-        Serial.readBytesUntil('\n', incomingData, sizeof(incomingData)); // Read incoming data into the buffer
+        incomingData = Serial.readStringUntil('\n'); 
     }
 
     // Send data to server
     if (mqttClient.connected()) {
-        mqttClient.publish(mqtt_topic, incomingData);
+        mqttClient.publish(mqtt_topic, incomingData.c_str()); 
     }
 }
 
@@ -55,6 +55,5 @@ void updateTime() {
     time_t rawTime = timeClient.getEpochTime();
     struct tm* timeinfo;
     timeinfo = localtime(&rawTime);
-    
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
 }
