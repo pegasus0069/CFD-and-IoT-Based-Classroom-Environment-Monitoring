@@ -10,6 +10,7 @@
 float temp, hum, pressure, alt, pm1, pm25, pm10, CO2;
 float tempAvg, humAvg, pressureAvg, altAvg, pm1Avg, pm25Avg, pm10Avg, CO2Avg;
 String str = "";
+String id = "0";
 
 // Sensor objects
 DFRobot_BME280_IIC bme(&Wire, 0x77);
@@ -67,7 +68,7 @@ void loop() {
     sampleCount++;
 
     // Check if 5 seconds have passed
-    if (millis() - startTime >= 5000) {
+    if (millis() - startTime >= 9500) {
         // Calculate averages
         tempAvg = tempSum / sampleCount;
         humAvg = humSum / sampleCount;
@@ -106,9 +107,16 @@ void readSensors() {
 }
 
 void sendData() {
+  
   // Send averaged data over Serial3
-  str = String(tempAvg) + ";" + String(humAvg) + ";" + String(pressureAvg) + ";" + String(altAvg) + ";" +
-        String(pm1Avg) + ";" + String(pm25Avg) + ";" + String(pm10Avg) + ";" + String(CO2Avg);
+  str = "{\"id\":" + id +
+                     ",\"air_temperature\":" + String(tempAvg) +
+                     ",\"humidity\":" + String(humAvg) +
+                     ",\"pressure\":" + String(pressureAvg) +
+                     ",\"pm1\":" + String(pm1Avg) +
+                     ",\"pm2_5\":" + String(pm25Avg) +
+                     ",\"pm10\":" + String(pm10Avg) +
+                     ",\"co2\":" + String(CO2Avg);
 
   Serial3.println(str);
   
