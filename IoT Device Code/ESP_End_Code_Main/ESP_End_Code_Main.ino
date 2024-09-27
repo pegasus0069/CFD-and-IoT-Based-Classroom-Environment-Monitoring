@@ -3,21 +3,23 @@
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 
-//Time
+// Time
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 6*3600, 60000); // UTC offset 0
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 6 * 3600, 60000); // UTC offset 0
+
 // WiFi
 const char* ssid = "Mahir 2.4GHz";
 const char* password = "01741238814";
 WiFiClient espClient;
+
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27";
 const char* mqtt_topic = "esp8266/sensorData";  // Topic to publish data to
 PubSubClient mqttClient(espClient);
 
-//Data
-String timestamp = "";
-String incomingData = "";  // Store incoming serial data
+// Data
+char timestamp[20]; // Buffer to store the formatted timestamp
+char incomingData[100]; // Buffer to store incoming serial data (adjust size as needed)
 
 void setup() {
     Serial.begin(115200);
@@ -31,30 +33,28 @@ void setup() {
 void loop() {
     if (!mqttClient.connected()) {
         while (!mqttClient.connected()) {
-          mqttClient.connect("ESP8266Client");
+            mqttClient.connect("ESP8266Client");
         }
     }
-    mqttClient.loop(); //Required to keep MQTT Connection
+    mqttClient.loop(); // Required to keep MQTT Connection
     updateTime();
 
-    //Read Serial
+    // Read Serial
     if (Serial.available() > 0) {
-      incomingData = Serial.readStringUntil('\n');
-    }
-    //Send data to server
-    if (mqttClient.connected()) {
-        mqttClient.publish(mqtt_topic, incomingData.c_str());
+        Serial.readBytesUntil('\n', incomingData, sizeof(incomingData)); // Read incoming data into the buffer
     }
 
+    // Send data to server
+    if (mqttClient.connected()) {
+        mqttClient.publish(mqtt_topic, incomingData);
+    }
 }
 
 void updateTime() {
     timeClient.update();
     time_t rawTime = timeClient.getEpochTime();
-    struct tm * timeinfo;
+    struct tm* timeinfo;
     timeinfo = localtime(&rawTime);
-    char buffer[20]; // 2024-09-24 09:52:31
-    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
-    timestamp = buffer;
+    
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
 }
-
