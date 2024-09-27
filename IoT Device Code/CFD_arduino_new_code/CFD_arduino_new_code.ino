@@ -107,27 +107,26 @@ void readSensors() {
 }
 
 void sendData() {
-  
-  // Send averaged data over Serial3
-  str = "{\"id\":" + id +
-                     ",\"air_temperature\":" + String(tempAvg) +
-                     ",\"humidity\":" + String(humAvg) +
-                     ",\"pressure\":" + String(pressureAvg) +
-                     ",\"pm1\":" + String(pm1Avg) +
-                     ",\"pm2_5\":" + String(pm25Avg) +
-                     ",\"pm10\":" + String(pm10Avg) +
-                     ",\"co2\":" + String(CO2Avg) + "\"}";
+    // Send averaged data over Serial3
+    str = "{\"id\":" + String(id) +
+          ",\"air_temperature\":" + String(tempAvg) +
+          ",\"humidity\":" + String(humAvg) +
+          ",\"pressure\":" + String(pressureAvg) +
+          ",\"pm1\":" + String(pm1Avg) +
+          ",\"pm2_5\":" + String(pm25Avg) +
+          ",\"pm10\":" + String(pm10Avg) +
+          ",\"co2\":" + String(CO2Avg) + "}";  // Correctly close the JSON string
     
-  Serial3.println(str);
-  
-  Serial.println("------xxxxxxxxxxxxxxxxxxxxxxxx--------");
+    Serial3.println(str);
+    
+    Serial.println("------xxxxxxxxxxxxxxxxxxxxxxxx--------");
 
-  Serial.println("Temp: " + String(temp));
-  Serial.println("Humi: " + String(hum));
-  Serial.println("Air Pressure: " + String(pressure));
-  Serial.println("Altitude: " + String(alt));
-  Serial.println("PM1.0: " + String(pm1));
-  Serial.println("PM2.5: " + String(pm25));
-  Serial.println("PM10.0: " + String(pm10));
-  Serial.println("CO2: " + String(CO2));
+    Serial.println("Temp: " + String(tempAvg));
+    Serial.println("Humi: " + String(humAvg));
+    Serial.println("Air Pressure: " + String(pressureAvg));
+    Serial.println("Altitude: " + String(alt));
+    Serial.println("PM1.0: " + String(pm1Avg));
+    Serial.println("PM2.5: " + String(pm25Avg));
+    Serial.println("PM10.0: " + String(pm10Avg));
+    Serial.println("CO2: " + String(CO2Avg));
 }
