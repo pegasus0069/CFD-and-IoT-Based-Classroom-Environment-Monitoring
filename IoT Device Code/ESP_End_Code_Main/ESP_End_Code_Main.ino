@@ -1,5 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 
 // WiFi credentials
 const char* ssid = "Mahir 2.4GHz";
@@ -12,6 +14,10 @@ const char* mqtt_topic = "esp8266/sensorData";
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
+// NTP client setup
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "time.google.com", 21600); // Using Google's NTP server
+
 // Data
 String incomingData = ""; 
 String timestamp = "";  
@@ -20,6 +26,9 @@ void setup() {
     Serial.begin(115200);
     setup_wifi();
     mqttClient.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
+
+    // Initialize NTP client
+    timeClient.begin();
 }
 
 void loop() {
@@ -33,29 +42,33 @@ void loop() {
     while (Serial.available() > 0) {
         char receivedChar = Serial.read();
         if (receivedChar == '\n') {  
-            // Trim whitespace and send data
+            // Trim whitespace and update time
             incomingData.trim(); 
-            updateTime();
-            sendData();
-            incomingData = "";  // Clear the buffer after processing
+            updateTime();  // Get the current timestamp
+            
+            // Format and include the timestamp in the JSON string
+            incomingData.replace("}", ", \"timestamp\": \"" + timestamp + "\"}");  
+            sendData();  
+            incomingData = ""; 
         } else {
-            incomingData += receivedChar;  // Accumulate incoming data
+            incomingData += receivedChar; 
         }
     }
 }
 
 void sendData() {
     if (mqttClient.connected() && !incomingData.isEmpty()) { // Check if connected and data is not empty
-        mqttClient.publish(mqtt_topic, incomingData.c_str());
+        // Publish the data with QoS 1
+        mqttClient.publish(mqtt_topic,incomingData.c_str()); 
     }
 }
-
 void setup_wifi() {
     delay(500);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
     }
+    Serial.println("Connected to WiFi");
 }
 
 void reconnectMQTT() {
@@ -64,14 +77,15 @@ void reconnectMQTT() {
             Serial.println("Connected to MQTT broker.");
         } else {
             Serial.print("Failed to connect to MQTT broker. Retrying in 5 seconds...");
-            delay(5000);  // Wait 5 seconds before retrying
+            delay(2000);  
         }
     }
 }
+
 // Function to format timestamp for MySQL
-updateTime() {
+void updateTime() {
     timeClient.update();  // Update the time from NTP
-    unsigned long epochTime = timeClient.getEpochTime();  // Get epoch time
+    time_t epochTime = timeClient.getEpochTime();  // Get epoch time as time_t
     // Convert epoch time to time structure
     struct tm *timeinfo = localtime(&epochTime);
     // Create a formatted timestamp string
@@ -83,5 +97,5 @@ updateTime() {
             timeinfo->tm_hour,         // Hour [0-23]
             timeinfo->tm_min,          // Minutes [0-59]
             timeinfo->tm_sec);         // Seconds [0-59]
-    timestamp = String(buffer);  // Return as a String
+    timestamp = String(buffer);  // Store the formatted timestamp
 }
