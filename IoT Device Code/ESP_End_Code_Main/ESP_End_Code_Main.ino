@@ -30,12 +30,19 @@ void loop() {
         }
     } 
     mqttClient.loop(); // Required to keep MQTT Connection
+    delay(10);
 
-    // Read Serial
-    if (Serial.available() > 0) {
-        incomingData = Serial.readStringUntil('\n'); 
-        if (mqttClient.connected()) {
-            mqttClient.publish(mqtt_topic, incomingData.c_str()); 
+    // Read Serial in chunks to avoid missing data
+    while (Serial.available() > 0) {
+        char receivedChar = Serial.read(); // Read one character at a time
+        incomingData += receivedChar;      // Append to the incomingData string
+
+        // Check for newline (end of data)
+        if (receivedChar == '\n') {
+            if (mqttClient.connected()) {
+                mqttClient.publish(mqtt_topic, incomingData.c_str(),true,1);
+            }
+            incomingData = ""; // Clear the buffer for the next message
         }
     }
 }

@@ -68,7 +68,7 @@ void loop() {
     sampleCount++;
 
     // Check if 5 seconds have passed
-    if (millis() - startTime >= 9500) {
+    if (millis() - startTime >= 6000) {
         // Calculate averages
         tempAvg = tempSum / sampleCount;
         humAvg = humSum / sampleCount;
