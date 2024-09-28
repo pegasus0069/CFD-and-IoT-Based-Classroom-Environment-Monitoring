@@ -7,14 +7,14 @@ const char* password = "01741238814";
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27";
-const char* mqtt_topic = "esp8266/sensorData";  // Topic to publish data to
+const char* mqtt_topic = "esp8266/sensorData";  
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-//Data
-char* incomingData = "";
-char* timestamp = "";
+// Data
+String incomingData = ""; 
+String timestamp = "";  
 
 void setup() {
     Serial.begin(115200);
@@ -24,18 +24,18 @@ void setup() {
 
 void loop() {
     if (!mqttClient.connected()) {
-        reconnect();
-    } else {
-        Serial.println("Connected to MQTT broker.");
-    }
-    mqttClient.loop(); //Required to stay connected
+        reconnectMQTT();
+    } 
+    mqttClient.loop(); // Required to stay connected
     delay(10);
 
-    //Read Serial
+    // Read Serial
     while (Serial.available() > 0) {
         char receivedChar = Serial.read();
         if (receivedChar == '\n') {  
-            incomingData.trim();  // Remove any extra whitespace
+            // Trim whitespace and send data
+            incomingData.trim(); 
+            updateTime();
             sendData();
             incomingData = "";  // Clear the buffer after processing
         } else {
@@ -43,10 +43,11 @@ void loop() {
         }
     }
 }
-void sendData(){
-  if (mqttClient.connected()) {
-    mqttClient.publish(mqtt_topic, incomingData.c_str());
-  }
+
+void sendData() {
+    if (mqttClient.connected() && !incomingData.isEmpty()) { // Check if connected and data is not empty
+        mqttClient.publish(mqtt_topic, incomingData.c_str());
+    }
 }
 
 void setup_wifi() {
@@ -57,7 +58,7 @@ void setup_wifi() {
     }
 }
 
-void reconnect() {
+void reconnectMQTT() {
     while (!mqttClient.connected()) {
         if (mqttClient.connect("ESP8266Client")) {
             Serial.println("Connected to MQTT broker.");
@@ -67,4 +68,20 @@ void reconnect() {
         }
     }
 }
-
+// Function to format timestamp for MySQL
+updateTime() {
+    timeClient.update();  // Update the time from NTP
+    unsigned long epochTime = timeClient.getEpochTime();  // Get epoch time
+    // Convert epoch time to time structure
+    struct tm *timeinfo = localtime(&epochTime);
+    // Create a formatted timestamp string
+    char buffer[20];  // YYYY-MM-DD HH:MM:SS (19 chars + null terminator)
+    sprintf(buffer, "%04d-%02d-%02d %02d:%02d:%02d", 
+            timeinfo->tm_year + 1900,  // Year since 1900
+            timeinfo->tm_mon + 1,      // Month [0-11]
+            timeinfo->tm_mday,         // Day of the month
+            timeinfo->tm_hour,         // Hour [0-23]
+            timeinfo->tm_min,          // Minutes [0-59]
+            timeinfo->tm_sec);         // Seconds [0-59]
+    timestamp = String(buffer);  // Return as a String
+}
