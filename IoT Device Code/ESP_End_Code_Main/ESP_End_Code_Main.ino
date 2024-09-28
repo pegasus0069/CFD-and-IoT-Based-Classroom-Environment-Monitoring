@@ -1,7 +1,5 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
 
 // WiFi credentials
 const char* ssid = "Mahir 2.4GHz";
@@ -14,10 +12,6 @@ const char* mqtt_topic = "esp8266/sensorData";
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-// NTP client setup
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "time.google.com", 21600); // Using Google's NTP server
-
 // Data
 String incomingData = ""; 
 String timestamp = "";  
@@ -26,9 +20,6 @@ void setup() {
     Serial.begin(115200);
     setup_wifi();
     mqttClient.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
-
-    // Initialize NTP client
-    timeClient.begin();
 }
 
 void loop() {
@@ -44,10 +35,7 @@ void loop() {
         if (receivedChar == '\n') {  
             // Trim whitespace and update time
             incomingData.trim(); 
-            updateTime();  // Get the current timestamp
             
-            // Format and include the timestamp in the JSON string
-            incomingData.replace("}", ", \"timestamp\": \"" + timestamp + "\"}");  
             sendData();  
             incomingData = ""; 
         } else {
@@ -58,7 +46,7 @@ void loop() {
 
 void sendData() {
     if (mqttClient.connected() && !incomingData.isEmpty()) { // Check if connected and data is not empty
-        // Publish the data with QoS 1
+        
         mqttClient.publish(mqtt_topic,incomingData.c_str()); 
     }
 }
@@ -68,34 +56,14 @@ void setup_wifi() {
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
     }
-    Serial.println("Connected to WiFi");
 }
 
 void reconnectMQTT() {
     while (!mqttClient.connected()) {
         if (mqttClient.connect("ESP8266Client")) {
-            Serial.println("Connected to MQTT broker.");
         } else {
-            Serial.print("Failed to connect to MQTT broker. Retrying in 5 seconds...");
             delay(2000);  
         }
     }
 }
 
-// Function to format timestamp for MySQL
-void updateTime() {
-    timeClient.update();  // Update the time from NTP
-    time_t epochTime = timeClient.getEpochTime();  // Get epoch time as time_t
-    // Convert epoch time to time structure
-    struct tm *timeinfo = localtime(&epochTime);
-    // Create a formatted timestamp string
-    char buffer[20];  // YYYY-MM-DD HH:MM:SS (19 chars + null terminator)
-    sprintf(buffer, "%04d-%02d-%02d %02d:%02d:%02d", 
-            timeinfo->tm_year + 1900,  // Year since 1900
-            timeinfo->tm_mon + 1,      // Month [0-11]
-            timeinfo->tm_mday,         // Day of the month
-            timeinfo->tm_hour,         // Hour [0-23]
-            timeinfo->tm_min,          // Minutes [0-59]
-            timeinfo->tm_sec);         // Seconds [0-59]
-    timestamp = String(buffer);  // Store the formatted timestamp
-}
