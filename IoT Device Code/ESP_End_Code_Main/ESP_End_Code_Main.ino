@@ -1,5 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 
 // WiFi
 const char* ssid = "Mahir 2.4GHz";
@@ -11,6 +13,10 @@ const char* mqtt_server = "103.237.39.27";
 const char* mqtt_topic = "esp8266/sensorData";  // Topic to publish data to
 PubSubClient mqttClient(espClient);
 
+// NTP Client settings
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "time.google.com", 0, 60000);  // Sync every minute
+
 // Data
 String incomingData; // Use String class to store incoming serial data
 
@@ -21,6 +27,7 @@ void setup() {
         delay(500);
     }
     mqttClient.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
+    timeClient.begin();
 }
 
 void loop() {
@@ -45,5 +52,13 @@ void loop() {
             incomingData = ""; // Clear the buffer for the next message
         }
     }
+}
+String getFormattedTimeForMySQL(unsigned long epochTime) {
+  // Get the current time as a formatted string
+  char dateTimeBuffer[20];
+  snprintf(dateTimeBuffer, sizeof(dateTimeBuffer), "%04d-%02d-%02d %02d:%02d:%02d",
+           timeClient.getYear(), timeClient.getMonth(), timeClient.getDay(),
+           timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
+  return String(dateTimeBuffer);
 }
 
