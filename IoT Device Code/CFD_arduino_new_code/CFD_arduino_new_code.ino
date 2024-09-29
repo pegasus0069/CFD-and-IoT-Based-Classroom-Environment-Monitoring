@@ -68,7 +68,7 @@ void loop() {
     sampleCount++;
 
     // Check if 5 seconds have passed
-    if (millis() - startTime >= 6000) {
+    if (millis() - startTime >= 5000) {
         // Calculate averages
         tempAvg = tempSum / sampleCount;
         humAvg = humSum / sampleCount;
@@ -82,6 +82,8 @@ void loop() {
         // Reset accumulators and counter
         tempSum = humSum = pressureSum = altSum = 0;
         pm1Sum = pm25Sum = pm10Sum = CO2Sum = 0;
+        Serial.print("Samples: ");
+        Serial.println(sampleCount);
         sampleCount = 0;
         startTime = millis();  // Reset the timer
 

@@ -35,7 +35,6 @@ void loop() {
         if (receivedChar == '\n') {  
             // Trim whitespace and update time
             incomingData.trim(); 
-            
             sendData();  
             incomingData = ""; 
         } else {
