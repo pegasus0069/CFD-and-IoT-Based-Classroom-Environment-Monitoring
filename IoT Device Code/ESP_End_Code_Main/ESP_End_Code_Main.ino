@@ -2,12 +2,12 @@
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "Mahir 2.4GHz";
-const char* password = "01741238814";
+const char* ssid = "CFDIUB";
+const char* password = "#cfd@iub#";
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27";
-const char* mqtt_topic = "esp8266/sensorData";  
+const char* mqtt_topic = "esp8266/cfd5";  
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
