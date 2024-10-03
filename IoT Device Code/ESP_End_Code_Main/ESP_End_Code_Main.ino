@@ -7,7 +7,7 @@ const char* password = "#cfd@iub#";
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27";
-const char* mqtt_topic = "esp8266/cfd5";  
+const char* mqtt_topic = "esp8266/cfd1";  
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -23,6 +23,11 @@ void setup() {
 }
 
 void loop() {
+    // Check WiFi connection and reconnect if needed
+    if (WiFi.status() != WL_CONNECTED) {
+        setup_wifi(); 
+    }
+
     if (!mqttClient.connected()) {
         reconnectMQTT();
     } 
