@@ -1,29 +1,25 @@
 #include <ESP8266WiFi.h>
-#include <PubSubClient.h>
+#include <ESP8266HTTPClient.h>
 
 // WiFi credentials
 const char* ssid = "Mahir 2.4GHz";
 const char* password = "01741238814";
 
-// MQTT broker settings
-const char* mqtt_server = "103.237.39.27";
-const char* mqtt_topic = "esp8266/cfd3";  
-String clientId;
+// Node-RED server address and endpoint
+const char* serverUrl = "http://103.237.39.27:1880/cfd1";  // Replace with your Node-RED URL and endpoint
+
 
 
 WiFiClient espClient;
-PubSubClient mqttClient(espClient);
+HTTPClient http;
 
 // Data
 String incomingData = ""; 
-String timestamp = "";  
+
 
 void setup() {
     Serial.begin(115200);
     setup_wifi();
-    mqttClient.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
-      // Generate unique client ID using ESP8266 chip ID
-  clientId = String(ESP.getChipId());
 }
 
 
@@ -32,12 +28,6 @@ void loop() {
     if (WiFi.status() != WL_CONNECTED) {
         setup_wifi(); 
     }
-
-    if (!mqttClient.connected()) {
-        reconnectMQTT();
-    } 
-    mqttClient.loop(); // Required to stay connected
-    delay(10);
 
     // Read Serial
     while (Serial.available() > 0) {
@@ -54,25 +44,17 @@ void loop() {
 }
 
 void sendData() {
-    if (mqttClient.connected() && !incomingData.isEmpty()) { // Check if connected and data is not empty
-        
-        mqttClient.publish(mqtt_topic,incomingData.c_str()); 
-    }
+  http.begin(espClient,serverUrl);
+  http.addHeader("Content-Type", "application/json");
+  http.POST(incomingData);
+  http.end();
 }
+
 void setup_wifi() {
     delay(500);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-    }
-}
-
-void reconnectMQTT() {
-    while (!mqttClient.connected()) {
-        if (mqttClient.connect(clientId.c_str())) {
-        } else {
-            delay(2000);  
-        }
     }
 }
 
