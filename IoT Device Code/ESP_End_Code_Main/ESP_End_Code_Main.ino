@@ -2,12 +2,14 @@
 #include <PubSubClient.h>
 
 // WiFi credentials
-const char* ssid = "CFDIUB";
-const char* password = "#cfd@iub#";
+const char* ssid = "Mahir 2.4GHz";
+const char* password = "01741238814";
 
 // MQTT broker settings
 const char* mqtt_server = "103.237.39.27";
-const char* mqtt_topic = "esp8266/cfd1";  
+const char* mqtt_topic = "esp8266/cfd3";  
+String clientId;
+
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -20,7 +22,10 @@ void setup() {
     Serial.begin(115200);
     setup_wifi();
     mqttClient.setServer(mqtt_server, 1883);  // Set the MQTT broker and port
+      // Generate unique client ID using ESP8266 chip ID
+  clientId = String(ESP.getChipId());
 }
+
 
 void loop() {
     // Check WiFi connection and reconnect if needed
@@ -64,7 +69,7 @@ void setup_wifi() {
 
 void reconnectMQTT() {
     while (!mqttClient.connected()) {
-        if (mqttClient.connect("ESP8266Client")) {
+        if (mqttClient.connect(clientId.c_str())) {
         } else {
             delay(2000);  
         }

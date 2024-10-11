@@ -10,7 +10,7 @@
 float temp, hum, pressure, alt, pm1, pm25, pm10, CO2;
 float tempAvg, humAvg, pressureAvg, altAvg, pm1Avg, pm25Avg, pm10Avg, CO2Avg;
 String str = "";
-String id = "1";
+String id = "3";
 
 // Sensor objects
 DFRobot_BME280_IIC bme(&Wire, 0x77);
