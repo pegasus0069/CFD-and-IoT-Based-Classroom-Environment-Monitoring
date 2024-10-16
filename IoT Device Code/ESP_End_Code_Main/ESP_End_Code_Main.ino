@@ -4,11 +4,7 @@
 // WiFi credentials
 const char* ssid = "Mahir 2.4GHz";
 const char* password = "01741238814";
-
-// Node-RED server address and endpoint
-const char* serverUrl = "http://103.237.39.27:1880/cfd1";  // Replace with your Node-RED URL and endpoint
-
-
+const char* serverUrl = "http://103.237.39.27:1880/cfd1";
 
 WiFiClient espClient;
 HTTPClient http;
